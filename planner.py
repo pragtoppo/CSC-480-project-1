@@ -91,9 +91,9 @@ def depth_first_search(grid, start, dirty, rows, cols):
             print(f"{nodes_expanded} nodes expanded")
             return
 
-        for successor, action in reversed(get_neighbors(state, grid, rows, cols)):
-            if successor not in visited:
-                stack.append((successor, path + [action]))
+        for neighbor, action in reversed(get_neighbors(state, grid, rows, cols)):
+            if neighbor not in visited:
+                stack.append((neighbor, path + [action]))
                 nodes_generated += 1
 
 def main():

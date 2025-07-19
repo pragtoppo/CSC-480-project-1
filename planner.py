@@ -9,8 +9,11 @@ ACTIONS = {
 }
 
 def parse_file(filename):
+    # Had to specify UTF-8 encoding to avoid errors when reading files
+    # Also ran into issues with BOM (Byte Order Mark) characters causing
+    # "invalid literal for int()" errors, so using lstrip('\ufeff') to remove them
     with open(filename, encoding='utf-8') as f:
-        cols = int(f.readline().lstrip('\ufeff')) 
+        cols = int(f.readline().lstrip('\ufeff'))
         rows = int(f.readline())
         grid = [list(f.readline().strip()) for _ in range(rows)]
 
@@ -18,31 +21,37 @@ def parse_file(filename):
     start = None
     for r in range(rows):
         for c in range(cols):
-            if grid[r][c] == '*':
+            if grid[r][c] == '*': # Found dirty cell
                 dirty.add((r, c))
-            elif grid[r][c] == '@':
+            elif grid[r][c] == '@': # Found robot start
                 start = (r, c)
     return grid, start, dirty, rows, cols
 
 def get_neighbors(state, grid, rows, cols):
-    pos, dirty = state
+    pos, dirty_tuple = state
     r, c = pos
     neighbors = []
 
+    # Check movement in all 4 directions
     for action, (dr, dc) in ACTIONS.items():
         nr, nc = r + dr, c + dc
+        
+        # Check if move is valid (within bounds and not blocked)
         if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] != '#':
-            neighbors.append((( (nr, nc), dirty ), action))
+            neighbors.append((((nr, nc), dirty_tuple), action))
 
-    if pos in dirty:
-        new_dirty = set(dirty)
-        new_dirty.remove(pos)
-        neighbors.append((( pos, frozenset(new_dirty) ), 'V'))
+    if pos in dirty_tuple:
+        # Convert tuple to list, remove position, sort, convert back to tuple
+        new_dirty_list = list(dirty_tuple)
+        new_dirty_list.remove(pos)
+        new_dirty_tuple = tuple(sorted(new_dirty_list))
+        neighbors.append(((pos, new_dirty_tuple), 'V'))
 
     return neighbors
 
 def uniform_cost_search(grid, start, dirty, rows, cols):
-    start_state = (start, frozenset(dirty))
+    # Convert dirty set to sorted tuple for consistent state representation
+    start_state = (start, tuple(sorted(dirty)))
     frontier = []
     heapq.heappush(frontier, (0, start_state, []))
     visited = set()
@@ -57,6 +66,7 @@ def uniform_cost_search(grid, start, dirty, rows, cols):
         visited.add(state)
         nodes_expanded += 1
 
+        # Check if all dirty cells cleaned (empty tuple)
         if not state[1]:
             for action in path:
                 print(action)
@@ -70,7 +80,8 @@ def uniform_cost_search(grid, start, dirty, rows, cols):
                 nodes_generated += 1
 
 def depth_first_search(grid, start, dirty, rows, cols):
-    start_state = (start, frozenset(dirty))
+    # Convert dirty set to sorted tuple for consistent state representation
+    start_state = (start, tuple(sorted(dirty)))
     stack = [(start_state, [])]
     visited = set()
     nodes_generated = 1
@@ -84,6 +95,7 @@ def depth_first_search(grid, start, dirty, rows, cols):
         visited.add(state)
         nodes_expanded += 1
 
+        # Check if all dirty cells cleaned (empty tuple)
         if not state[1]:
             for action in path:
                 print(action)
